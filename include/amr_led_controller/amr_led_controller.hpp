@@ -54,6 +54,27 @@ struct IoRequest
     return j.dump();
   }
 
+  static std::optional<IoRequest> fromStr(const std::string& str) {
+    nlohmann::json j = nlohmann::json::parse(str);
+    if(j.empty())
+    {
+      return std::nullopt;
+    }
+
+    IoRequest data;
+
+    data.timestamp = std::chrono::system_clock::from_time_t(j["timestamp"].get<std::time_t>());
+    for (const auto& req : j["requests"]) {
+      RequestType type = req["type"] == "READ" ? RequestType::READ : RequestType::WRITE;
+      std::optional<int> value;
+      if (req.find("value") != req.end()) {
+        value = req["value"].get<int>();
+      }
+      data.requests.push_back({req["key"].get<int>(), type, value});
+    }
+    return data;
+  }
+
 };
 
 #endif // AMR_LED_CONTROLLER_HPP

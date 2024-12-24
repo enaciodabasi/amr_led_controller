@@ -52,16 +52,17 @@ int main(int argc, char** argv)
       }
     }
   );
-
+  std::cout << "aaaaaa\n";
   std::expected<tcp_client::TcpClient, tcp_client::ErrorCode> tcpClientExp = tcp_client::TcpClient::create("127.0.0.1", "3255");
 
   if(!tcpClientExp.has_value())
   {
-
+    std::cout << tcp_client::ErrorCodeDescriptions.at(tcpClientExp.error()) << std::endl;
     return 2;
   }
-
+  std::cout << "aaaaaa\n";
   auto tcpClient = std::move(tcpClientExp.value());
+  std::cout << "aaaaaa\n";
   uint16_t ledMode = to_integral(generalState);
   IoRequest ledModeReq;
   ledModeReq.requests.resize(6);
@@ -71,26 +72,31 @@ int main(int argc, char** argv)
   while(rclcpp::ok())
   {
     rclcpp::spin_some(ledControllerNode);
-
+    
     if(generalState != previousState)
     {
       ledMode = to_integral(generalState);
 
       previousState = generalState;
     }
-
+    std::cout << "bbbb\n";
     ledModeReq.timestamp = std::chrono::system_clock::now(); 
     ledModeReq.requests[0] = std::make_tuple(0, IoRequest::RequestType::WRITE, (ledMode & 1));
     ledModeReq.requests[1] = std::make_tuple(1, IoRequest::RequestType::WRITE, ((ledMode & 2) >> 1));
     ledModeReq.requests[2] = std::make_tuple(2, IoRequest::RequestType::WRITE, (ledMode & 4) >> 2);
     
-    ledModeReq.requests[3] = ledModeReq.requests[0];
-    ledModeReq.requests[4] = ledModeReq.requests[1];
-    ledModeReq.requests[5] = ledModeReq.requests[2];
-
+    ledModeReq.requests[3] = std::make_tuple(3, IoRequest::RequestType::WRITE, (ledMode & 1));
+    ledModeReq.requests[4] = std::make_tuple(4, IoRequest::RequestType::WRITE, ((ledMode & 2) >> 1));
+    ledModeReq.requests[5] = std::make_tuple(5, IoRequest::RequestType::WRITE, (ledMode & 4) >> 2);
+    
+    
+  
     const std::string ledModeJsonReq = IoRequest::toJsonStr(ledModeReq);
-    tcp_client::ErrorCode tcpSendRes = tcpClient.sendData(ledModeJsonReq.c_str());
+    std::cout << ledModeJsonReq << std::endl;
+    tcp_client::ErrorCode tcpSendRes = tcpClient.sendData(ledModeJsonReq.c_str(), ledModeJsonReq.length());
+    std::cout << tcp_client::ErrorCodeDescriptions.at(tcpSendRes) << std::endl;
 
+    sleepRate.sleep();
   }
 
   
